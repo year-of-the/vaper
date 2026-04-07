@@ -10,47 +10,14 @@ It scans your Claude Code session transcripts on disk, sums today's token usage 
 
 ## Install
 
-### 1. Add the marketplace and install the plugin
-
-In Claude Code:
-
 ```
-/plugin marketplace add year-of-the/vaper
-/plugin install vaper@vaper
+/plugin install vaper
+/vaper:setup
 ```
 
-The plugin gets cached at `~/.claude/plugins/cache/vaper/vaper/<version>/`.
+`/vaper:setup` is a skill that ships with the plugin. It finds the installed `water-meter.py`, drops a stable wrapper at `~/.local/bin/vaper-meter` so future `/plugin update`s don't break the path, and adds a `statusLine` block to your `~/.claude/settings.json` pointing at it. It asks before touching any existing config.
 
-### 2. Wire up the status line
-
-Plugins can't auto-configure status lines yet — Claude Code only honors the `agent` key in plugin-bundled settings, so you have to point your own `~/.claude/settings.json` at the script. The install path is version-tied, so the cleanest way to do it once is a tiny wrapper that always finds the latest installed version:
-
-```sh
-mkdir -p ~/.local/bin
-cat > ~/.local/bin/vaper-meter << 'EOF'
-#!/bin/sh
-exec "$(find ~/.claude/plugins/cache -path '*vaper*scripts/water-meter.py' 2>/dev/null | sort -V | tail -1)"
-EOF
-chmod +x ~/.local/bin/vaper-meter
-```
-
-Then add this to `~/.claude/settings.json` (merge with existing keys):
-
-```json
-{
-  "statusLine": {
-    "type": "command",
-    "command": "/Users/YOU/.local/bin/vaper-meter",
-    "padding": 1
-  }
-}
-```
-
-Replace `/Users/YOU` with your actual home path (Claude Code's status line command field doesn't expand `~` or `$HOME`).
-
-Restart Claude Code or run `/statusline`. The widget should appear at the bottom and refresh after every turn.
-
-> **Once vaper is listed in the official Anthropic marketplace** (`claude-plugins-official`), the `/plugin marketplace add` step disappears — users will just type `/plugin install vaper` and skip straight to wiring up the status line.
+After it finishes, run `/statusline` (or restart Claude Code) and the widget appears at the bottom of the screen, refreshing after every assistant turn.
 
 ## Manage
 
@@ -59,30 +26,24 @@ While installed, you can pause and resume the widget without uninstalling:
 | Command | Effect |
 | --- | --- |
 | `/plugin` | Opens the four-tab UI: Discover, Installed, Marketplaces, Errors |
-| `/plugin disable vaper@vaper` | Pauses the plugin (cache stays on disk) |
-| `/plugin enable vaper@vaper` | Resumes a previously disabled plugin |
+| `/plugin disable vaper` | Pauses the plugin (cache stays on disk) |
+| `/plugin enable vaper` | Resumes a previously disabled plugin |
 | `/reload-plugins` | Picks up changes after editing the script in `~/.claude/plugins/cache/...` without restarting |
 
 There are `claude plugin <cmd>` CLI equivalents (`claude plugin disable vaper`, etc.) for shell scripts.
 
 ## Uninstall
 
-Two slash commands plus two file cleanups, in this order:
-
 ```
-/plugin uninstall vaper@vaper
-/plugin marketplace remove vaper
+/plugin uninstall vaper
 ```
 
-- `/plugin uninstall vaper@vaper` removes the plugin and **automatically deletes** `~/.claude/plugins/cache/vaper/...`. No manual cache cleanup needed.
-- `/plugin marketplace remove vaper` (optional) un-registers the marketplace. Skip it if you want to keep it for future installs from the same source — but note that removing the marketplace also uninstalls any other plugins still installed from it.
+This removes the plugin and its cache at `~/.claude/plugins/cache/vaper/...` automatically. To also tear down what `/vaper:setup` wired in:
 
-Then the manual cleanup that mirrors the manual install:
-
-1. Edit `~/.claude/settings.json` and delete the `statusLine` block.
+1. Delete the `statusLine` block from `~/.claude/settings.json`.
 2. `rm ~/.local/bin/vaper-meter`
 
-Restart or run `/statusline` and the widget is gone. Nothing else lingers — no temp files, no daemons, no global git config, no hooks. The plugin is purely a status line script reading existing transcripts.
+Restart or run `/statusline` and the widget is gone. Nothing else lingers — no temp files, no daemons, no global git config, no hooks.
 
 ## Tuning
 
@@ -115,7 +76,6 @@ A full scan takes ~25 ms on a busy day; the status line debounce is 300 ms.
 - The energy coefficients are **estimates**, derived from public LLM-energy research (Patterson 2021, Luccioni 2023, EPRI 2024). Anthropic does not publish per-token figures. If you have better numbers, edit the constants.
 - Scope is **all projects on this machine**. If you only want one project, change `SESSIONS_GLOB` in the script.
 - "Today" is **local midnight**.
-- Status line wiring is manual because plugin-bundled `settings.json` only honors the `agent` key as of Claude Code 2.x. If/when status line auto-config lands, this README will get shorter.
 
 ## Privacy
 
@@ -127,7 +87,7 @@ vaper runs entirely on your local machine. It reads Claude Code's session transc
 - The displayed water-boiled value is computed locally and never leaves your machine.
 - It writes nothing to disk and creates no files of its own.
 
-If you don't want to take my word for it, the entire script is ~150 lines of stdlib Python at [`scripts/water-meter.py`](scripts/water-meter.py) — grep it for `socket`, `urllib`, `http`, or `requests` and you'll find none.
+The whole script is at [`scripts/water-meter.py`](scripts/water-meter.py).
 
 ## Develop
 
