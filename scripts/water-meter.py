@@ -2,10 +2,11 @@
 """
 vaper — Claude Code status line widget.
 
-Prints one line: how much water you've "boiled" with Claude today (heated from
-ROOM_TEMP_C to BOIL_TEMP_C), based on summing all of today's token usage
-across every Claude Code session on this machine and converting it to
-joules via per-token-type energy coefficients.
+Prints one line: how much water you've boiled with Claude today
+(brought from ROOM_TEMP_C to BOIL_TEMP_C and fully vaporized), based on
+summing all of today's token usage across every Claude Code session on
+this machine and converting it to joules via per-token-type energy
+coefficients.
 
 Today = since local midnight. Scope = every project under ~/.claude/projects.
 
@@ -40,14 +41,21 @@ J_PER_INPUT_TOKEN           = 0.6
 J_PER_CACHE_CREATION_TOKEN  = 0.6
 J_PER_CACHE_READ_TOKEN      = 0.03
 
-# Water heating math. Specific heat of water is ~4.186 J/(g·K), and 1 mL
-# of water is ~1 g. ΔT is BOIL_TEMP_C − ROOM_TEMP_C. Note: this is energy
-# to *heat* water to boiling, not to vaporize it (vaporization needs an
-# extra ~2260 J/g of latent heat).
-SPECIFIC_HEAT_J_PER_G_K = 4.186
-ROOM_TEMP_C             = 20
-BOIL_TEMP_C             = 100
-J_PER_ML = SPECIFIC_HEAT_J_PER_G_K * (BOIL_TEMP_C - ROOM_TEMP_C)  # 334.88
+# Water boiling math. To fully boil 1 g (≈ 1 mL) of water from room
+# temperature, we need TWO things: bring it to 100°C, then vaporize it.
+#   sensible heat:  c · ΔT  =  4.186 J/(g·K) · 80 K  ≈   334.88 J/g
+#   latent heat:    L_vap                            ≈  2257    J/g
+#   total:                                               2591.88 J/g
+# (Latent heat dominates by ~7×, which is why a kettle full of water
+# at 99°C still takes ages to actually boil away.)
+SPECIFIC_HEAT_J_PER_G_K          = 4.186
+LATENT_HEAT_VAPORIZATION_J_PER_G = 2257
+ROOM_TEMP_C                      = 20
+BOIL_TEMP_C                      = 100
+J_PER_ML = (
+    SPECIFIC_HEAT_J_PER_G_K * (BOIL_TEMP_C - ROOM_TEMP_C)
+    + LATENT_HEAT_VAPORIZATION_J_PER_G
+)  # 2591.88
 
 # Where Claude Code stores per-session transcripts. Each session is one
 # JSONL file; assistant messages carry message.usage with token counts.

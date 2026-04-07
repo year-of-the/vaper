@@ -6,7 +6,7 @@ A Claude Code status line widget that shows how much water you've "boiled" with 
 🚬💧 13.61 L boiled today
 ```
 
-It scans your Claude Code session transcripts on disk, sums today's token usage across every project, multiplies by per-token-type joule estimates, and divides by the energy needed to heat 1 mL of water from 20°C to 100°C (≈ 334.88 J).
+It scans your Claude Code session transcripts on disk, sums today's token usage across every project, multiplies by per-token-type joule estimates, and divides by the energy needed to fully boil 1 mL of water — heat it from 20°C to 100°C and vaporize it (≈ 2592 J).
 
 ## Install
 
@@ -105,7 +105,7 @@ Claude Code already writes every session as JSONL under `~/.claude/projects/<pro
 2. Globs all session files, fast-skipping any whose mtime is older than today.
 3. Reads remaining files line-by-line, summing today's tokens by category.
 4. Multiplies by the per-type joule coefficients above.
-5. Divides total joules by 334.88 J/mL to get milliliters of water heated.
+5. Divides total joules by 2591.88 J/mL (sensible heat from 20°C to 100°C plus latent heat of vaporization) to get milliliters of water actually boiled away.
 6. Prints one line, auto-formatting between mL and L.
 
 A full scan takes ~25 ms on a busy day; the status line debounce is 300 ms.
@@ -113,7 +113,6 @@ A full scan takes ~25 ms on a busy day; the status line debounce is 300 ms.
 ## Caveats
 
 - The energy coefficients are **estimates**, derived from public LLM-energy research (Patterson 2021, Luccioni 2023, EPRI 2024). Anthropic does not publish per-token figures. If you have better numbers, edit the constants.
-- "Boiled" here means *heated to 100°C*, not vaporized. Actually vaporizing the water would need an extra ~2260 J/g of latent heat — roughly 7× more energy than just bringing it to a boil.
 - Scope is **all projects on this machine**. If you only want one project, change `SESSIONS_GLOB` in the script.
 - "Today" is **local midnight**.
 - Status line wiring is manual because plugin-bundled `settings.json` only honors the `agent` key as of Claude Code 2.x. If/when status line auto-config lands, this README will get shorter.
