@@ -133,4 +133,4 @@ For a tighter dev loop, point `statusLine.command` at the absolute path of the c
 
 ## License
 
-MIT.
+MIT — see [LICENSE](LICENSE).
