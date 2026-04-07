@@ -118,6 +118,18 @@ A full scan takes ~25 ms on a busy day; the status line debounce is 300 ms.
 - "Today" is **local midnight**.
 - Status line wiring is manual because plugin-bundled `settings.json` only honors the `agent` key as of Claude Code 2.x. If/when status line auto-config lands, this README will get shorter.
 
+## Privacy
+
+vaper runs entirely on your local machine. It reads Claude Code's session transcript files at `~/.claude/projects/*/*.jsonl` — files Claude Code already writes locally for its own use — and sums today's token counts.
+
+- It transmits **nothing** to any server, ever.
+- It collects no telemetry, analytics, or usage stats.
+- It has no network code: no `requests`, no `urllib`, no sockets.
+- The displayed water-boiled value is computed locally and never leaves your machine.
+- It writes nothing to disk and creates no files of its own.
+
+If you don't want to take my word for it, the entire script is ~150 lines of stdlib Python at [`scripts/water-meter.py`](scripts/water-meter.py) — grep it for `socket`, `urllib`, `http`, or `requests` and you'll find none.
+
 ## Develop
 
 To work on the plugin locally:
