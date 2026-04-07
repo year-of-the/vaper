@@ -29,7 +29,7 @@ Plugins can't auto-configure status lines yet — Claude Code only honors the `a
 mkdir -p ~/.local/bin
 cat > ~/.local/bin/vaper-meter << 'EOF'
 #!/bin/sh
-exec "$(find ~/.claude/plugins/cache -path '*vaper*scripts/water-meter.py' 2>/dev/null | sort | tail -1)"
+exec "$(find ~/.claude/plugins/cache -path '*vaper*scripts/water-meter.py' 2>/dev/null | sort -V | tail -1)"
 EOF
 chmod +x ~/.local/bin/vaper-meter
 ```
