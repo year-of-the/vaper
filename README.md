@@ -50,6 +50,40 @@ Replace `/Users/YOU` with your actual home path (Claude Code's status line comma
 
 Restart Claude Code or run `/statusline`. The widget should appear at the bottom and refresh after every turn.
 
+> **Once vaper is listed in the official Anthropic marketplace** (`claude-plugins-official`), the `/plugin marketplace add` step disappears — users will just type `/plugin install vaper` and skip straight to wiring up the status line.
+
+## Manage
+
+While installed, you can pause and resume the widget without uninstalling:
+
+| Command | Effect |
+| --- | --- |
+| `/plugin` | Opens the four-tab UI: Discover, Installed, Marketplaces, Errors |
+| `/plugin disable vaper@vaper` | Pauses the plugin (cache stays on disk) |
+| `/plugin enable vaper@vaper` | Resumes a previously disabled plugin |
+| `/reload-plugins` | Picks up changes after editing the script in `~/.claude/plugins/cache/...` without restarting |
+
+There are `claude plugin <cmd>` CLI equivalents (`claude plugin disable vaper`, etc.) for shell scripts.
+
+## Uninstall
+
+Two slash commands plus two file cleanups, in this order:
+
+```
+/plugin uninstall vaper@vaper
+/plugin marketplace remove vaper
+```
+
+- `/plugin uninstall vaper@vaper` removes the plugin and **automatically deletes** `~/.claude/plugins/cache/vaper/...`. No manual cache cleanup needed.
+- `/plugin marketplace remove vaper` (optional) un-registers the marketplace. Skip it if you want to keep it for future installs from the same source — but note that removing the marketplace also uninstalls any other plugins still installed from it.
+
+Then the manual cleanup that mirrors the manual install:
+
+1. Edit `~/.claude/settings.json` and delete the `statusLine` block.
+2. `rm ~/.local/bin/vaper-meter`
+
+Restart or run `/statusline` and the widget is gone. Nothing else lingers — no temp files, no daemons, no global git config, no hooks. The plugin is purely a status line script reading existing transcripts.
+
 ## Tuning
 
 The four energy coefficients are constants at the top of `scripts/water-meter.py`. Open the installed copy and edit them in place:
