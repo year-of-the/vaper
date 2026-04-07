@@ -1,0 +1,8 @@
+{
+  "name": "vaper",
+  "version": "0.1.0",
+  "description": "Status line widget that shows how much water Claude has boiled today, by converting daily token usage into joules and then milliliters of water heated from 20°C to 100°C.",
+  "author": { "name": "Abel McElroy" },
+  "license": "MIT",
+  "keywords": ["statusline", "energy", "tokens", "fun"]
+}
