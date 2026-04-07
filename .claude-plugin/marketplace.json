@@ -1,14 +1,14 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "vaper",
-  "description": "Single-plugin marketplace for vaper, a Claude Code status line widget that shows how much water you've boiled today by converting daily token usage into joules of water heated to 100°C.",
+  "description": "Single-plugin marketplace for vaper, a Claude Code status line widget that shows how much water you've boiled with Claude today by converting daily token usage into joules of water heated to 100°C.",
   "owner": {
     "name": "Abel McElroy"
   },
   "plugins": [
     {
       "name": "vaper",
-      "description": "Status line widget that shows how much water Claude has boiled today, by converting daily token usage into joules and then milliliters of water heated from 20°C to 100°C.",
+      "description": "Status line widget that shows how much water you've boiled with Claude today, by converting daily token usage into joules and then milliliters of water heated from 20°C to 100°C.",
       "source": ".",
       "category": "monitoring",
       "author": {

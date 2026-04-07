@@ -1,6 +1,6 @@
 # vaper
 
-A Claude Code status line widget that shows how much water Claude has "boiled" today.
+A Claude Code status line widget that shows how much water you've "boiled" with Claude today.
 
 ```
 💧 13.61 L boiled today

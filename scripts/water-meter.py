@@ -2,7 +2,7 @@
 """
 vaper — Claude Code status line widget.
 
-Prints one line: how much water Claude has "boiled" today (heated from
+Prints one line: how much water you've "boiled" with Claude today (heated from
 ROOM_TEMP_C to BOIL_TEMP_C), based on summing all of today's token usage
 across every Claude Code session on this machine and converting it to
 joules via per-token-type energy coefficients.
