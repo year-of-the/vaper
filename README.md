@@ -3,7 +3,7 @@
 A Claude Code status line widget that shows how much water you've "boiled" with Claude today.
 
 ```
-💧 13.61 L boiled today
+🚬💧 13.61 L boiled today
 ```
 
 It scans your Claude Code session transcripts on disk, sums today's token usage across every project, multiplies by per-token-type joule estimates, and divides by the energy needed to heat 1 mL of water from 20°C to 100°C (≈ 334.88 J).
@@ -92,7 +92,7 @@ To work on the plugin locally:
 git clone https://github.com/year-of-the/vaper
 cd vaper
 chmod +x scripts/water-meter.py
-echo '{}' | scripts/water-meter.py    # should print "💧 ... boiled today"
+echo '{}' | scripts/water-meter.py    # should print "🚬💧 ... boiled today"
 ```
 
 For a tighter dev loop, point `statusLine.command` at the absolute path of the cloned `scripts/water-meter.py` instead of the wrapper. No marketplace install needed.

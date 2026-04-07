@@ -124,10 +124,10 @@ def joules_for(totals: dict) -> float:
 
 def format_water(ml: float) -> str:
     if ml >= 1000:
-        return f"💧 {ml / 1000:.2f} L boiled today"
+        return f"🚬💧 {ml / 1000:.2f} L boiled today"
     if ml >= 10:
-        return f"💧 {ml:.0f} mL boiled today"
-    return f"💧 {ml:.1f} mL boiled today"
+        return f"🚬💧 {ml:.0f} mL boiled today"
+    return f"🚬💧 {ml:.1f} mL boiled today"
 
 
 def main() -> int:
@@ -146,7 +146,7 @@ def main() -> int:
     except Exception:
         # Never crash the status line. A widget that disappears is worse
         # than one that says "I don't know".
-        print("💧 — boiled today")
+        print("🚬💧 — boiled today")
         return 0
     return 0
 
