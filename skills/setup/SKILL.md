@@ -46,7 +46,7 @@ Plugins cannot ship status line entries directly (Claude Code only honors the `a
 
 5. **Write the merged file back** with the same formatting (2-space indent, trailing newline) the user already had, if you can tell. If not, default to 2-space indent.
 
-6. **Tell the user** to run `/statusline` (or restart Claude Code). The widget should appear at the bottom of the screen and update after every assistant turn.
+6. **Tell the user** to restart Claude Code. The widget will appear at the bottom of the screen and update on its own after every assistant turn. (Do **not** tell them to run `/statusline` — that's the setup wizard for configuring a status line, not a refresh command, and running it would overwrite the block we just wrote.)
 
 ## Uninstall path
 

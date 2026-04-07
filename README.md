@@ -17,7 +17,7 @@ It scans your Claude Code session transcripts on disk, sums today's token usage 
 
 `/vaper:setup` is a skill that ships with the plugin. It finds the installed `water-meter.py`, drops a stable wrapper at `~/.local/bin/vaper-meter` so future `/plugin update`s don't break the path, and adds a `statusLine` block to your `~/.claude/settings.json` pointing at it. It asks before touching any existing config.
 
-After it finishes, run `/statusline` (or restart Claude Code) and the widget appears at the bottom of the screen, refreshing after every assistant turn.
+After it finishes, restart Claude Code and the widget appears at the bottom of the screen, refreshing on its own after every assistant turn.
 
 ## Manage
 
@@ -43,7 +43,7 @@ This removes the plugin and its cache at `~/.claude/plugins/cache/vaper/...` aut
 1. Delete the `statusLine` block from `~/.claude/settings.json`.
 2. `rm ~/.local/bin/vaper-meter`
 
-Restart or run `/statusline` and the widget is gone. Nothing else lingers — no temp files, no daemons, no global git config, no hooks.
+Restart Claude Code and the widget is gone. Nothing else lingers — no temp files, no daemons, no global git config, no hooks.
 
 ## Tuning
 
