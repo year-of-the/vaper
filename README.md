@@ -1,23 +1,46 @@
 # vaper
 
-A Claude Code status line widget that shows how much water you've "boiled" with Claude today.
+A Claude Code status line widget that converts today's token energy into one of four absurd units: water boiled, Big Macs, 9mm rounds, or 2010-era BTC mined.
 
 ```
-🚬💧 13.61 L boiled today
+🚬💧 7.63 L boiled today              # default
+🫦🍔 8.4 Big Macs consumed today      # --mode=calories
+💥🔫 10,170 9mm rounds today          # --mode=bullets
+🤞₿ 5.49 BTC (2010) mined today       # --mode=btc
 ```
 
-It scans your Claude Code session transcripts on disk, sums today's token usage across every project, multiplies by per-token-type joule estimates, and divides by the energy needed to fully boil 1 mL of water — heat it from 20°C to 100°C and vaporize it (≈ 2592 J).
+It scans your Claude Code session transcripts on disk, sums today's token usage across every project, multiplies by per-token-type joule estimates to get a total energy in joules, then divides by the chosen mode's denominator. Same joule total, four different jokes — switch modes with `/vaper:mode <name>`.
 
 ## Install
 
 ```
 /plugin install vaper
-/vaper:setup
+/vaper:init
 ```
 
-`/vaper:setup` is a skill that ships with the plugin. It finds the installed `water-meter.py`, drops a stable wrapper at `~/.local/bin/vaper-meter` so future `/plugin update`s don't break the path, and adds a `statusLine` block to your `~/.claude/settings.json` pointing at it. It asks before touching any existing config.
+`/vaper:init` finds the installed `water-meter.py`, drops a stable wrapper at `~/.local/bin/vaper-meter` so future `/plugin update`s don't break the path, and adds a `statusLine` block to your `~/.claude/settings.json` pointing at the wrapper. It runs in **water mode by default**, asks no questions, and overwrites any existing `statusLine` block.
 
-After it finishes, restart Claude Code and the widget appears at the bottom of the screen, refreshing on its own after every assistant turn.
+Restart Claude Code and the widget appears at the bottom of the screen, refreshing on its own after every assistant turn.
+
+## Modes
+
+Same joules total, four different jokes. Switch with `/vaper:mode <name>`:
+
+```
+/vaper:mode water
+/vaper:mode calories
+/vaper:mode bullets
+/vaper:mode btc
+```
+
+| Mode | What it shows | Constant |
+| --- | --- | --- |
+| `water` (default) | mL/L of water heated from 20°C and fully vaporized | 2,592 J/mL |
+| `calories` | Big Macs of food energy (or kcal under 1 Big Mac) | 2.36 MJ/Big Mac |
+| `bullets` | 9mm rounds' worth of chemical energy (powder, not muzzle) | 1,944 J/round |
+| `btc` | BTC you could have mined in 2010 with that energy | 3.6 MJ/BTC (1 kWh) |
+
+All four numbers come from the same joules total — different denominators, same energy. The constants are tunable in `scripts/water-meter.py` if you have stronger opinions about powder loads or 2010 mining hash rates.
 
 ## Manage
 
@@ -38,7 +61,7 @@ There are `claude plugin <cmd>` CLI equivalents (`claude plugin disable vaper`, 
 /plugin uninstall vaper
 ```
 
-This removes the plugin and its cache at `~/.claude/plugins/cache/vaper/...` automatically. To also tear down what `/vaper:setup` wired in:
+This removes the plugin and its cache at `~/.claude/plugins/cache/vaper/...` automatically. To also tear down what `/vaper:init` wired in:
 
 1. Delete the `statusLine` block from `~/.claude/settings.json`.
 2. `rm ~/.local/bin/vaper-meter`
@@ -65,9 +88,9 @@ Claude Code already writes every session as JSONL under `~/.claude/projects/<pro
 1. Computes the local-midnight cutoff.
 2. Globs all session files, fast-skipping any whose mtime is older than today.
 3. Reads remaining files line-by-line, summing today's tokens by category.
-4. Multiplies by the per-type joule coefficients above.
-5. Divides total joules by 2591.88 J/mL (sensible heat from 20°C to 100°C plus latent heat of vaporization) to get milliliters of water actually boiled away.
-6. Prints one line, auto-formatting between mL and L.
+4. Multiplies by the per-type joule coefficients above to get a total in joules.
+5. Divides that total by the chosen mode's denominator — 2591.88 J/mL for water (sensible heat 20°C → 100°C plus latent heat of vaporization), 2,355,592 J/Big Mac for calories, 1944 J for bullets, 3.6 MJ for btc.
+6. Prints one line, auto-formatting between sub-units (mL/L, kcal/Big Macs, mBTC/BTC) as the magnitude grows.
 
 A full scan takes ~25 ms on a busy day; the status line debounce is 300 ms.
 
@@ -84,7 +107,7 @@ vaper runs entirely on your local machine. It reads Claude Code's session transc
 - It transmits **nothing** to any server, ever.
 - It collects no telemetry, analytics, or usage stats.
 - It has no network code: no `requests`, no `urllib`, no sockets.
-- The displayed water-boiled value is computed locally and never leaves your machine.
+- The displayed value is computed locally and never leaves your machine.
 - It writes nothing to disk and creates no files of its own.
 
 The whole script is at [`scripts/water-meter.py`](scripts/water-meter.py).

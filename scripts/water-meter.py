@@ -2,13 +2,20 @@
 """
 vaper — Claude Code status line widget.
 
-Prints one line: how much water you've boiled with Claude today
-(brought from ROOM_TEMP_C to BOIL_TEMP_C and fully vaporized), based on
-summing all of today's token usage across every Claude Code session on
-this machine and converting it to joules via per-token-type energy
-coefficients.
+Prints one line: today's Claude Code token energy converted into one
+of four absurd units. The same joule total drives four interchangeable
+modes, picked via --mode=<name>:
 
-Today = since local midnight. Scope = every project under ~/.claude/projects.
+  water    (default) — mL/L of water heated from 20°C and vaporized
+  calories            — Big Macs (or kcal under 1 Big Mac) of food energy
+  bullets             — 9mm rounds, chemical energy of the propellant
+  btc                 — BTC mined back when 2010-era CPUs could do it
+
+The joule total comes from summing today's token usage across every
+Claude Code session on this machine and multiplying by per-token-type
+joule coefficients; each mode just divides that total by a different
+denominator. Today = since local midnight. Scope = every project
+under ~/.claude/projects.
 
 It reads stdin (Claude Code passes a session JSON object to status line
 scripts) but does not use any of it — the script gets all data from
@@ -20,9 +27,11 @@ values for an Opus-class model derived from public LLM-energy research:
   - Patterson et al. 2021 (GPT-3 inference energy)
   - Luccioni et al. 2023 (text generation energy)
   - EPRI 2024 (per-query estimates for ChatGPT-class models)
-Tune the four constants below to match your own beliefs.
+Tune the four token constants and four mode constants to match your
+own beliefs.
 """
 
+import argparse
 import glob
 import json
 import os
@@ -56,6 +65,30 @@ J_PER_ML = (
     SPECIFIC_HEAT_J_PER_G_K * (BOIL_TEMP_C - ROOM_TEMP_C)
     + LATENT_HEAT_VAPORIZATION_J_PER_G
 )  # 2591.88
+
+# ---- mode constants ------------------------------------------------------
+# Each mode divides the same joules total by a different denominator.
+
+# Heat / food calories. 1 food Calorie = 1 kcal = 4184 J.
+J_PER_KCAL    = 4184
+J_PER_BIG_MAC = J_PER_KCAL * 563   # 563 kcal per Big Mac → 2,355,592 J
+
+# 9mm Luger, *chemical* energy of the propellant when the round goes off.
+# A typical 115 gr load uses 6 grains of smokeless powder; smokeless
+# powder energy density is 5 kJ/g, so one round releases:
+#   6 gr × 0.0648 g/gr × 5000 J/g  =  1944 J
+# Only 25% of that ends up as kinetic energy in the bullet (muzzle
+# energy is about 480 J for the same load) — the rest goes to heat,
+# gas expansion, sound, and muzzle flash. We use the chemical figure
+# because the mode is named "detonated", not "fired".
+J_PER_9MM_ROUND = 1944
+
+# Bitcoin mined in 2010. Difficulty grew 14,000× during 2010 as mining
+# moved from CPUs to early GPUs, so per-BTC energy varied wildly across
+# the year. 1 kWh = 3.6 MJ is a defensible mid-2010 figure and produces
+# the satisfyingly absurd "you could have mined several whole bitcoin"
+# comparison this mode is here to deliver.
+J_PER_BTC_2010 = 3_600_000
 
 # Where Claude Code stores per-session transcripts. Each session is one
 # JSONL file; assistant messages carry message.usage with token counts.
@@ -130,12 +163,49 @@ def joules_for(totals: dict) -> float:
     )
 
 
-def format_water(ml: float) -> str:
+def format_water(joules: float) -> str:
+    ml = joules / J_PER_ML
     if ml >= 1000:
         return f"🚬💧 {ml / 1000:.2f} L boiled today"
     if ml >= 10:
         return f"🚬💧 {ml:.0f} mL boiled today"
     return f"🚬💧 {ml:.1f} mL boiled today"
+
+
+def format_calories(joules: float) -> str:
+    big_macs = joules / J_PER_BIG_MAC
+    if big_macs < 1:
+        # Tiny days: show raw kcal so the number isn't just "0.3 Big Macs".
+        return f"🫦🍔 {joules / J_PER_KCAL:.0f} kcal consumed today"
+    if big_macs >= 100:
+        return f"🫦🍔 {big_macs:.0f} Big Macs' calories burned today"
+    return f"🫦🍔 {big_macs:.1f} Big Macs' calories burned today"
+
+
+def format_bullets(joules: float) -> str:
+    rounds = joules / J_PER_9MM_ROUND
+    if rounds < 1:
+        return "💥🔫 0 9mm rounds today"
+    if rounds < 2:
+        return "💥🔫 1 9mm round today"
+    return f"💥🔫 {rounds:,.0f} 9mm rounds today"
+
+
+def format_btc(joules: float) -> str:
+    btc = joules / J_PER_BTC_2010
+    if btc < 0.01:
+        # Underflow tier: show in mBTC so the number isn't just "0.00 BTC".
+        return f"🤞₿ {btc * 1000:.1f} mBTC (2010) mined today"
+    return f"🤞₿ {btc:.2f} BTC (2010) mined today"
+
+
+MODES = {
+    "water":    format_water,
+    "calories": format_calories,
+    "bullets":  format_bullets,
+    "btc":      format_btc,
+}
+DEFAULT_MODE = "water"
 
 
 def main() -> int:
@@ -146,11 +216,25 @@ def main() -> int:
     except Exception:
         pass
 
+    # Parse --mode. On any failure (unknown choice, malformed args), fall
+    # back to the default mode rather than letting argparse exit — same
+    # philosophy as the broader exception handler below.
+    mode = DEFAULT_MODE
+    try:
+        parser = argparse.ArgumentParser(add_help=False)
+        parser.add_argument("--mode", choices=list(MODES), default=DEFAULT_MODE)
+        args, _ = parser.parse_known_args()
+        mode = args.mode
+    except SystemExit:
+        mode = DEFAULT_MODE
+    except Exception:
+        mode = DEFAULT_MODE
+
     try:
         midnight = local_midnight_epoch()
         totals = sum_todays_tokens(midnight)
-        ml = joules_for(totals) / J_PER_ML
-        print(format_water(ml))
+        joules = joules_for(totals)
+        print(MODES[mode](joules))
     except Exception:
         # Never crash the status line. A widget that disappears is worse
         # than one that says "I don't know".

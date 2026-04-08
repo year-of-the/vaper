@@ -8,9 +8,9 @@
   "plugins": [
     {
       "name": "vaper",
-      "version": "0.1.0",
-      "description": "How much water you've boiled with Claude today.",
-      "source": ".",
+      "version": "0.3.0",
+      "description": "Converts today's Claude Code token energy into one of four absurd units: water boiled, Big Macs, 9mm rounds, or 2010-era BTC mined.",
+      "source": "./",
       "category": "monitoring",
       "author": {
         "name": "Abel McElroy"
