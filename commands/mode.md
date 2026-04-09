@@ -16,4 +16,4 @@ The user invoked `/vaper:mode $ARGUMENTS`. Switch vaper's display mode to `$ARGU
 
 4. **Write the file back** with the same formatting it already had (2-space indent, trailing newline).
 
-5. **Print exactly:** `vaper switched to $ARGUMENTS. Next assistant turn picks it up.`
+5. **Print exactly:** `vaper switched to $ARGUMENTS 🤩`
