@@ -3,10 +3,10 @@
 A Claude Code status line widget that converts today's token energy into one of four absurd units: water boiled, Big Macs, 9mm rounds, or 2010-era BTC mined.
 
 ```
-🚬💧 7.63 L boiled today              # default
-🫦🍔 8.4 Big Macs consumed today      # --mode=calories
-💥🔫 10,170 9mm rounds today          # --mode=bullets
-🤞₿ 5.49 BTC (2010) mined today       # --mode=btc
+🚬💧 7.63 L boiled today                   # default
+🫦🍔 8.40 Big Macs' calories burned today  # --mode=calories
+💥🔫 10,173 9mm rounds today               # --mode=bullets
+🤞₿ 5.49 BTC (2010) mined today            # --mode=btc
 ```
 
 It scans your Claude Code session transcripts on disk, sums today's token usage across every project, multiplies by per-token-type joule estimates to get a total energy in joules, then divides by the chosen mode's denominator. Same joule total, four different jokes — switch modes with `/vaper:mode <name>`.
@@ -35,8 +35,8 @@ Same joules total, four different jokes. Switch with `/vaper:mode <name>`:
 
 | Mode | What it shows | Constant |
 | --- | --- | --- |
-| `water` (default) | mL/L of water heated from 20°C and fully vaporized | 2,592 J/mL |
-| `calories` | Big Macs of food energy (or kcal under 1 Big Mac) | 2.36 MJ/Big Mac |
+| `water` (default) | L of water heated from 20°C and fully vaporized | 2,592 J/mL |
+| `calories` | Big Macs of food energy | 2.36 MJ/Big Mac |
 | `bullets` | 9mm rounds' worth of chemical energy (powder, not muzzle) | 1,944 J/round |
 | `btc` | BTC you could have mined in 2010 with that energy | 3.6 MJ/BTC (1 kWh) |
 
@@ -90,7 +90,7 @@ Claude Code already writes every session as JSONL under `~/.claude/projects/<pro
 3. Reads remaining files line-by-line, summing today's tokens by category.
 4. Multiplies by the per-type joule coefficients above to get a total in joules.
 5. Divides that total by the chosen mode's denominator — 2591.88 J/mL for water (sensible heat 20°C → 100°C plus latent heat of vaporization), 2,355,592 J/Big Mac for calories, 1944 J for bullets, 3.6 MJ for btc.
-6. Prints one line, auto-formatting between sub-units (mL/L, kcal/Big Macs, mBTC/BTC) as the magnitude grows.
+6. Prints one line in the mode's unit.
 
 A full scan takes ~25 ms on a busy day; the status line debounce is 300 ms.
 
