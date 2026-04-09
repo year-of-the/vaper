@@ -6,8 +6,8 @@ Prints one line: today's Claude Code token energy converted into one
 of four absurd units. The same joule total drives four interchangeable
 modes, picked via --mode=<name>:
 
-  water    (default) — mL/L of water heated from 20°C and vaporized
-  calories            — Big Macs (or kcal under 1 Big Mac) of food energy
+  water    (default) — L of water heated from 20°C and vaporized
+  calories            — Big Macs of food energy
   bullets             — 9mm rounds, chemical energy of the propellant
   btc                 — BTC mined back when 2010-era CPUs could do it
 
@@ -164,38 +164,22 @@ def joules_for(totals: dict) -> float:
 
 
 def format_water(joules: float) -> str:
-    ml = joules / J_PER_ML
-    if ml >= 1000:
-        return f"🚬💧 {ml / 1000:.2f} L boiled today"
-    if ml >= 10:
-        return f"🚬💧 {ml:.0f} mL boiled today"
-    return f"🚬💧 {ml:.1f} mL boiled today"
+    liters = joules / J_PER_ML / 1000
+    return f"🚬💧 {liters:.2f} L boiled today"
 
 
 def format_calories(joules: float) -> str:
     big_macs = joules / J_PER_BIG_MAC
-    if big_macs < 1:
-        # Tiny days: show raw kcal so the number isn't just "0.3 Big Macs".
-        return f"🫦🍔 {joules / J_PER_KCAL:.0f} kcal consumed today"
-    if big_macs >= 100:
-        return f"🫦🍔 {big_macs:.0f} Big Macs' calories burned today"
-    return f"🫦🍔 {big_macs:.1f} Big Macs' calories burned today"
+    return f"🫦🍔 {big_macs:.2f} Big Macs' calories burned today"
 
 
 def format_bullets(joules: float) -> str:
     rounds = joules / J_PER_9MM_ROUND
-    if rounds < 1:
-        return "💥🔫 0 9mm rounds today"
-    if rounds < 2:
-        return "💥🔫 1 9mm round today"
     return f"💥🔫 {rounds:,.0f} 9mm rounds today"
 
 
 def format_btc(joules: float) -> str:
     btc = joules / J_PER_BTC_2010
-    if btc < 0.01:
-        # Underflow tier: show in mBTC so the number isn't just "0.00 BTC".
-        return f"🤞₿ {btc * 1000:.1f} mBTC (2010) mined today"
     return f"🤞₿ {btc:.2f} BTC (2010) mined today"
 
 
