@@ -170,7 +170,7 @@ def format_water(joules: float) -> str:
 
 def format_calories(joules: float) -> str:
     big_macs = joules / J_PER_BIG_MAC
-    return f"🫦🍔 {big_macs:.2f} Big Macs' calories burned today"
+    return f"🫦🍔 {big_macs:.2f} Big Macs' calories burned"
 
 
 def format_bullets(joules: float) -> str:
