@@ -1,6 +1,14 @@
 # Initialize vaper
 
-The user invoked `/vaper:init`. Set up vaper's status line widget in water mode (default), with no further questions. Execute the entire procedure end-to-end and report. Do **not** ask the user anything — overwrite any existing `statusLine` block in `~/.claude/settings.json` if there is one, regardless of what it points at.
+The user invoked `/vaper:init`. Set up vaper's status line widget in water mode (default), with no further questions. Execute the entire procedure end-to-end and report. Do **not** ask the user anything.
+
+## The statusLine is a shared resource
+
+Claude Code's `statusLine.command` is a single string, but multiple plugins want to contribute to it. The convention we follow here (and that other plugins like `principled-mode` follow): treat `statusLine.command` as a **wrapper chain** of the form `wrapper-N ... wrapper-1 inner [inner-args...]`. Each wrapper is an executable path that takes the rest of the chain as positional arguments, runs them, and transforms the output. Each plugin owns one segment of this chain and only adds, updates, or removes **its own segment** — never someone else's.
+
+Vaper is the **inner command** of the chain — it produces content from scratch (no input). Its segment is the token ending in `/vaper-meter` plus any immediately-following `--mode=<name>` token. Vaper must sit at the innermost (end) position of the chain, because a wrapper needs something to wrap.
+
+The steps below preserve other plugins' wrapper segments. If you overwrite the chain, you break every other statusline plugin the user has installed.
 
 ## Steps
 
@@ -27,18 +35,14 @@ The user invoked `/vaper:init`. Set up vaper's status line widget in water mode 
 
 3. **Read `~/.claude/settings.json`.** If it doesn't exist, treat it as `{}`. Parse as JSON.
 
-4. **Set the `statusLine` block** to point at the wrapper, water mode (no `--mode` flag — water is the default and omitting the flag keeps the command stable):
+4. **Merge the `statusLine` block** to place vaper's segment in the innermost position, preserving any wrapper chain already set up by other plugins:
 
-   ```json
-   "statusLine": {
-     "type": "command",
-     "command": "<absolute wrapper path>",
-     "padding": 1
-   }
-   ```
-
-   - **Overwrite any existing `statusLine` block**, whatever it points at, without asking. The user explicitly opted into this when they ran `/vaper:init`.
-   - **Preserve every other top-level key** in `settings.json` exactly as it was.
+   - **If `.statusLine.command` is unset or empty:** set the block to
+     ```json
+     "statusLine": { "type": "command", "command": "<wrapper-absolute-path>", "padding": 1 }
+     ```
+   - **If `.statusLine.command` already contains a token ending in `/vaper-meter`:** find that token plus any immediately-following `--mode=<value>` token, and replace that span with `<wrapper-absolute-path>` (no mode flag — `/vaper:init` resets to the water default). Leave every other token in the command, and `type` / `padding` / every other top-level key, exactly as they were.
+   - **Otherwise (command is set, but has no `/vaper-meter` token):** append ` <wrapper-absolute-path>` to the end of the existing command. This puts vaper at the innermost position of the wrapper chain. Leave `type`, `padding`, and every other top-level key exactly as they were.
 
 5. **Write the merged file back** with 2-space indent and a trailing newline (or whatever formatting `settings.json` already had, if you can tell).
 
