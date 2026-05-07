@@ -1,8 +1,10 @@
 {
   "name": "vaper",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Converts today's Claude Code token energy into one of four absurd units: water boiled, Big Macs, 9mm rounds, or 2010-era BTC mined.",
   "author": { "name": "Abel McElroy" },
+  "homepage": "https://github.com/year-of-the/vaper",
+  "repository": "https://github.com/year-of-the/vaper",
   "license": "MIT",
   "keywords": ["statusline", "energy", "tokens", "fun"]
 }

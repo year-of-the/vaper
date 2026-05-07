@@ -4,9 +4,9 @@ A Claude Code status line widget that converts today's token energy into one of 
 
 ```
 🚬💧 7.63 L boiled today                   # default
-🫦🍔 8.40 Big Macs' calories burned today  # --mode=calories
-💥🔫 10,173 9mm rounds today               # --mode=bullets
-🤞₿ 5.49 BTC (2010) mined today            # --mode=btc
+🫦🍔 8.40 Big Macs' calories burned today  # /vaper:mode calories
+💥🔫 10,173 9mm rounds today               # /vaper:mode bullets
+🤞₿ 5.49 BTC (2010) mined today            # /vaper:mode btc
 ```
 
 It scans your Claude Code session transcripts on disk, sums today's token usage across every project, multiplies by per-token-type joule estimates to get a total energy in joules, then divides by the chosen mode's denominator. Same joule total, four different jokes — switch modes with `/vaper:mode <name>`.
@@ -18,9 +18,11 @@ It scans your Claude Code session transcripts on disk, sums today's token usage 
 /vaper:init
 ```
 
-`/vaper:init` finds the installed `water-meter.py`, drops a stable wrapper at `~/.local/bin/vaper-meter` so future `/plugin update`s don't break the path, and adds a `statusLine` block to your `~/.claude/settings.json` pointing at the wrapper. It runs in **water mode by default**, asks no questions, and overwrites any existing `statusLine` block.
-
 Restart Claude Code and the widget appears at the bottom of the screen, refreshing on its own after every assistant turn.
+
+`/vaper:init` writes a launcher to vaper's plugin data directory and adds a `statusLine` block to `~/.claude/settings.json` pointing at it. The launcher is a 4-line `sh` script — no glob, no PATH lookup, no wrapper-finding logic at refresh time. Vaper composes cleanly into any existing `statusLine` (e.g. a persona-kit `statusline-multi.sh`) by appending itself at the innermost position.
+
+A `SessionStart` hook keeps the launcher in sync with the latest installed `water-meter.py`, so `/plugin update` and reinstalls are transparent — no further action required.
 
 ## Modes
 
@@ -32,6 +34,8 @@ Same joules total, four different jokes. Switch with `/vaper:mode <name>`:
 /vaper:mode bullets
 /vaper:mode btc
 ```
+
+Mode is stored as a one-line text file in vaper's plugin data directory; the launcher reads it on every refresh. No restart, no `settings.json` edit, no mode flag in your status line command.
 
 | Mode | What it shows | Constant |
 | --- | --- | --- |
@@ -58,15 +62,11 @@ There are `claude plugin <cmd>` CLI equivalents (`claude plugin disable vaper`, 
 ## Uninstall
 
 ```
+/vaper:uninstall
 /plugin uninstall vaper
 ```
 
-This removes the plugin and its cache at `~/.claude/plugins/cache/vaper/...` automatically. To also tear down what `/vaper:init` wired in:
-
-1. Delete the `statusLine` block from `~/.claude/settings.json`.
-2. `rm ~/.local/bin/vaper-meter`
-
-Restart Claude Code and the widget is gone. Nothing else lingers — no temp files, no daemons, no global git config, no hooks.
+`/vaper:uninstall` removes vaper from your `statusLine` (preserving any wrapper around it) and deletes the launcher. `/plugin uninstall vaper` then removes the plugin and its data directory. Nothing else lingers — no stable wrappers in `~/.local/bin`, no temp files, no daemons, no global git config, no hooks. If you skip `/vaper:uninstall`, the only residue is a stale `statusLine.command` path in your `settings.json` pointing at a (now-deleted) launcher; the status line will simply go blank until you remove the entry.
 
 ## Tuning
 
@@ -108,7 +108,7 @@ vaper runs entirely on your local machine. It reads Claude Code's session transc
 - It collects no telemetry, analytics, or usage stats.
 - It has no network code: no `requests`, no `urllib`, no sockets.
 - The displayed value is computed locally and never leaves your machine.
-- It writes nothing to disk and creates no files of its own.
+- The only files it writes are its own launcher and a one-line mode file inside the plugin data directory.
 
 The whole script is at [`scripts/water-meter.py`](scripts/water-meter.py).
 
@@ -123,7 +123,7 @@ chmod +x scripts/water-meter.py
 echo '{}' | scripts/water-meter.py    # should print "🚬💧 ... boiled today"
 ```
 
-For a tighter dev loop, point `statusLine.command` at the absolute path of the cloned `scripts/water-meter.py` instead of the wrapper. No marketplace install needed.
+For a tighter dev loop, point `statusLine.command` at the absolute path of the cloned `scripts/water-meter.py` directly. No marketplace install needed.
 
 ## License
 
