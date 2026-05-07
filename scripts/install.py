@@ -2,16 +2,23 @@
 """Idempotent vaper installer.
 
 Run by the SessionStart hook on every session, and by /vaper:init,
-/vaper:uninstall on explicit user request. Also called with no flags
-on first install (when the launcher in CLAUDE_PLUGIN_DATA does not
-yet exist) to compose vaper into the user's statusLine.
+/vaper:uninstall on explicit user request. First run (no launcher in
+${CLAUDE_PLUGIN_DATA}) auto-upgrades to install.
 
 Modes:
   (no flag)     heal-only — re-point any existing vaper-meter token to
                 the current launcher path. First-run upgrades to install.
-  --install     compose vaper into ~/.claude/settings.json (idempotent).
-  --uninstall   remove vaper from ~/.claude/settings.json and delete the
-                launcher.
+  --install     compose vaper into the active statusLine chain.
+  --uninstall   remove vaper from the chain and delete the launcher.
+
+Two chain owners are supported:
+
+  - ~/.claude/settings.json's statusLine.command (the default).
+  - ~/.claude/personas/wrapped-statusline.txt (when the personas kit
+    has captured the prior statusLine into its own chain). If that
+    file exists, vaper writes there instead of settings.json — personas
+    owns settings.json's command and would silently swallow vaper's
+    output if we appended to it.
 
 The launcher lives at ${CLAUDE_PLUGIN_DATA}/vaper-meter — a stable path
 across plugin updates, auto-removed by Claude Code on /plugin uninstall.
@@ -29,6 +36,7 @@ SCRIPT      = PLUGIN_ROOT / "scripts" / "water-meter.py"
 LAUNCHER    = DATA_DIR / "vaper-meter"
 MODE_FILE   = DATA_DIR / "mode"
 SETTINGS    = Path.home() / ".claude" / "settings.json"
+WRAPPED     = Path.home() / ".claude" / "personas" / "wrapped-statusline.txt"
 
 
 def write_launcher() -> None:
@@ -40,20 +48,6 @@ def write_launcher() -> None:
         f'exec {shlex.quote(str(SCRIPT))} --mode="$mode" "$@"\n'
     )
     LAUNCHER.chmod(0o755)
-
-
-def read_settings() -> dict:
-    if not SETTINGS.exists():
-        return {}
-    try:
-        return json.loads(SETTINGS.read_text() or "{}")
-    except json.JSONDecodeError:
-        return {}
-
-
-def write_settings(data: dict) -> None:
-    SETTINGS.parent.mkdir(parents=True, exist_ok=True)
-    SETTINGS.write_text(json.dumps(data, indent=2) + "\n")
 
 
 def is_vaper_token(tok: str) -> bool:
@@ -96,47 +90,94 @@ def strip_vaper(cmd: str) -> str:
             continue
         out.append(t)
         i += 1
-    # also drop a trailing standalone "--" left over from `multi.sh -- vaper-meter`
+    # drop a trailing standalone "--" left over from `multi.sh -- vaper-meter`
     while out and out[-1] == "--":
         out.pop()
     return shlex.join(out)
 
 
-def install() -> None:
-    data = read_settings()
+def compose(cmd: str) -> str:
+    """Splice vaper into a chain command: heal if vaper is already there,
+    else append at the innermost position."""
+    if "vaper-meter" in cmd:
+        return repoint(cmd, str(LAUNCHER))
+    if cmd.strip():
+        return cmd + " " + shlex.quote(str(LAUNCHER))
+    return str(LAUNCHER)
+
+
+# ---- chain owners --------------------------------------------------------
+
+def read_settings_cmd() -> tuple[dict, dict, str]:
+    """Return (full settings dict, statusLine block, command string)."""
+    data: dict = {}
+    if SETTINGS.exists():
+        try:
+            data = json.loads(SETTINGS.read_text() or "{}")
+        except json.JSONDecodeError:
+            data = {}
     sl = data.get("statusLine") or {}
-    cmd = sl.get("command", "")
-    if cmd and "vaper-meter" in cmd:
-        new_cmd = repoint(cmd, str(LAUNCHER))
-    elif cmd:
-        # existing non-vaper command (e.g. a multi-statusline wrapper):
-        # append vaper at the innermost position.
-        new_cmd = cmd + " " + shlex.quote(str(LAUNCHER))
-    else:
-        new_cmd = str(LAUNCHER)
+    return data, sl, sl.get("command", "")
+
+
+def write_settings_cmd(data: dict, sl: dict, new_cmd: str) -> None:
     new_sl = {"type": sl.get("type", "command"), "command": new_cmd}
     for k, v in sl.items():
         if k not in ("type", "command"):
             new_sl[k] = v
-    if not cmd and "padding" not in new_sl:
+    if "padding" not in new_sl and not sl:
         new_sl["padding"] = 1
-    if new_sl == sl:
-        return
     data["statusLine"] = new_sl
-    write_settings(data)
+    SETTINGS.parent.mkdir(parents=True, exist_ok=True)
+    SETTINGS.write_text(json.dumps(data, indent=2) + "\n")
+
+
+def read_wrapped_cmd() -> str:
+    try:
+        return WRAPPED.read_text().strip()
+    except FileNotFoundError:
+        return ""
+
+
+def write_wrapped_cmd(new_cmd: str) -> None:
+    WRAPPED.parent.mkdir(parents=True, exist_ok=True)
+    WRAPPED.write_text(new_cmd + "\n")
+
+
+# ---- operations ----------------------------------------------------------
+
+def install() -> None:
+    """Compose vaper into whichever chain owner is in front."""
+    if WRAPPED.exists():
+        # Personas owns settings.json. Write to the wrapped chain.
+        old = read_wrapped_cmd()
+        new = compose(old)
+        if new != old:
+            write_wrapped_cmd(new)
+        return
+
+    data, sl, cmd = read_settings_cmd()
+    new_cmd = compose(cmd)
+    if new_cmd == cmd and sl.get("type") == "command":
+        return
+    write_settings_cmd(data, sl, new_cmd)
 
 
 def heal() -> None:
-    data = read_settings()
-    sl = data.get("statusLine") or {}
-    cmd = sl.get("command", "")
-    if not cmd or "vaper-meter" not in cmd:
-        return
-    new_cmd = repoint(cmd, str(LAUNCHER))
-    if new_cmd == cmd:
-        return
-    data["statusLine"] = {**sl, "command": new_cmd}
-    write_settings(data)
+    """Re-point any vaper-meter token in either chain owner."""
+    if WRAPPED.exists():
+        old = read_wrapped_cmd()
+        if "vaper-meter" in old:
+            new = repoint(old, str(LAUNCHER))
+            if new != old:
+                write_wrapped_cmd(new)
+
+    data, sl, cmd = read_settings_cmd()
+    if cmd and "vaper-meter" in cmd:
+        new_cmd = repoint(cmd, str(LAUNCHER))
+        if new_cmd != cmd:
+            data["statusLine"] = {**sl, "command": new_cmd}
+            SETTINGS.write_text(json.dumps(data, indent=2) + "\n")
 
 
 def uninstall() -> None:
@@ -144,17 +185,26 @@ def uninstall() -> None:
         LAUNCHER.unlink()
     except FileNotFoundError:
         pass
-    data = read_settings()
-    sl = data.get("statusLine") or {}
-    cmd = sl.get("command", "")
-    if not cmd or "vaper-meter" not in cmd:
-        return
-    new_cmd = strip_vaper(cmd).strip()
-    if not new_cmd:
-        data.pop("statusLine", None)
-    else:
-        data["statusLine"] = {**sl, "command": new_cmd}
-    write_settings(data)
+
+    if WRAPPED.exists():
+        old = read_wrapped_cmd()
+        if "vaper-meter" in old:
+            new = strip_vaper(old).strip()
+            if new:
+                write_wrapped_cmd(new)
+            else:
+                # Leave the file in place but empty so personas knows
+                # it's still wrapping (just with no inner content).
+                WRAPPED.write_text("")
+
+    data, sl, cmd = read_settings_cmd()
+    if cmd and "vaper-meter" in cmd:
+        new_cmd = strip_vaper(cmd).strip()
+        if not new_cmd:
+            data.pop("statusLine", None)
+        else:
+            data["statusLine"] = {**sl, "command": new_cmd}
+        SETTINGS.write_text(json.dumps(data, indent=2) + "\n")
 
 
 def main() -> int:
